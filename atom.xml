@@ -4,9 +4,9 @@
   
   <link href="/atom.xml" rel="self"/>
   
-  <link href="http://yoursite.com/"/>
+  <link href="http://huskyyy.github.io/"/>
   <updated>2016-04-17T15:55:11.584Z</updated>
-  <id>http://yoursite.com/</id>
+  <id>http://huskyyy.github.io/</id>
   
   <author>
     <name>Huskyyy</name>
@@ -17,8 +17,8 @@
   
   <entry>
     <title>Hello World</title>
-    <link href="http://yoursite.com/2016/04/13/hello-world/"/>
-    <id>http://yoursite.com/2016/04/13/hello-world/</id>
+    <link href="http://huskyyy.github.io/2016/04/13/hello-world/"/>
+    <id>http://huskyyy.github.io/2016/04/13/hello-world/</id>
     <published>2016-04-13T13:04:44.695Z</published>
     <updated>2016-04-17T15:55:11.584Z</updated>
     
