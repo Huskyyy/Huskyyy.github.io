@@ -4,9 +4,9 @@
   
   <link href="/atom.xml" rel="self"/>
   
-  <link href="huskyyy.github.io/"/>
+  <link href="http:/"/>
   <updated>2016-04-24T14:01:15.769Z</updated>
-  <id>huskyyy.github.io/</id>
+  <id>http:/</id>
   
   <author>
     <name>Huskyyy</name>
@@ -17,8 +17,8 @@
   
   <entry>
     <title>RecycleView之自定义LayoutManager(上)</title>
-    <link href="huskyyy.github.io/2016/04/18/RecycleView-Post-1/"/>
-    <id>huskyyy.github.io/2016/04/18/RecycleView-Post-1/</id>
+    <link href="http:/2016/04/18/RecycleView-Post-1/"/>
+    <id>http:/2016/04/18/RecycleView-Post-1/</id>
     <published>2016-04-18T12:16:03.000Z</published>
     <updated>2016-04-24T14:01:15.769Z</updated>
     
@@ -157,19 +157,19 @@ public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerVi
     
     </summary>
     
-      <category term="自定义View" scheme="huskyyy.github.io/categories/%E8%87%AA%E5%AE%9A%E4%B9%89View/"/>
+      <category term="自定义View" scheme="http:/categories/%E8%87%AA%E5%AE%9A%E4%B9%89View/"/>
     
     
-      <category term="RecycleView" scheme="huskyyy.github.io/tags/RecycleView/"/>
+      <category term="RecycleView" scheme="http:/tags/RecycleView/"/>
     
-      <category term="LayoutManager" scheme="huskyyy.github.io/tags/LayoutManager/"/>
+      <category term="LayoutManager" scheme="http:/tags/LayoutManager/"/>
     
   </entry>
   
   <entry>
     <title>Hello World</title>
-    <link href="huskyyy.github.io/2016/04/13/hello-world/"/>
-    <id>huskyyy.github.io/2016/04/13/hello-world/</id>
+    <link href="http:/2016/04/13/hello-world/"/>
+    <id>http:/2016/04/13/hello-world/</id>
     <published>2016-04-13T13:04:44.695Z</published>
     <updated>2016-04-17T15:55:11.584Z</updated>
     
