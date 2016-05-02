@@ -94,60 +94,24 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>　　在阅读过<a href="http://huskyyy.github.io/2016/04/18/RecyclerView-Post-1/" target="_blank" rel="external">RecyclerView之自定义LayoutManager(上)</a>之后，你已经明白LayoutManager如何layout出每一个子View以及在滚动的过程中如何实现子View的回收利用。今天我们将解决在RecyclerView中，如果子View发生增删改时，LayoutManager应该如何处理的问题。</p>
+        <p>　　在阅读过<a href="http://huskyyy.github.io/2016/04/18/RecyclerView-Post-1/">RecyclerView之自定义LayoutManager(上)</a>之后，你已经明白LayoutManager如何layout出每一个子View以及在滚动的过程中如何实现子View的回收利用。今天我们将解决在RecyclerView中，如果子View发生增删改时，LayoutManager应该如何处理的问题。</p>
 <p>　　以下以当某个子View被移除时为例。</p>
 <p>　　现在假设这么一种情形。某个子View被移除了。移除该子View的过程想用个动画效果过渡一下。RecyclerView有个默认使用的ItemAnimator叫DefaultItemAnimator。如果你接着上一篇文章的讲解直接使用<code>notifyItemRemoved()</code>方法来通知RecyclerView某个子View被移除了，那么默认的ItemAnimator就会被触发，移除过程的动画效果如下。</p>
-<p><img style="float:center;" src="/post2/test.gif"></p>
+<p><img style="float:center;"  src="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/test.gif"></p>
 <p>　　看起来似乎还不错。但仔细一看就会发现，为啥每次移除某个子View后布局都不变呢？这时因为在我实现的LayoutManager内部，对于每个已经或者曾经layout出来的子View保存了对应的“layout出来的宽度和高度”。在移除子View后，对应的“layout出来的宽度和高度”没有及时更新，于是导致了上述的现象。如果你所定制的LayoutManager的每个子View的大小都一样，那么就不会有这种问题。那为什么要保存宽高呢？原因很简单，为了在RecyclerView往上滑动的过程中让每个子View出现在该出现的位置。</p>
 <p>　　那我在某个子View移除后，把所保存的layout出来的宽度和高度及时更新不就行了呗？更新的方式很简单，把所保存的宽高及时删掉，然后在<code>onLayoutChildren()</code>重新获取原始的宽高就好了。这时，如果你所删除的子View位于可视范围之内或者在下边界之外，那么不会有任何问题。当你删除了一个位于上边界之外的一个子View的时候，问题来了。比如说，你选中位置0的子View，然后你将RecyclerView往下滑动，直到位置0到位置10(为了方便，这里假设位置10)的子View完全不可见，然后删除该子View。这时发生了什么呢？这时位置0的子View被删除了，所以从0开始保存的所有子View的layout出来的宽高都被删了。这时你可视范围内的子View更新了。但一旦将RecyclerView往上滑动，就会发现从位置1到位置10的子View的layout完全乱了。原因在于，当删除了某个子View后，会调用LayoutManager的<code>onLayoutChildren()</code>方法来绘制视图范围内的子View。但视图范围之外的子View我们没有绘制。结果从位置1到位置10的子View的layout信息丢失了，从而当RecyclerView向上滑动的时候，对应的layout出现问题。</p>
 <p>　　那我干脆把位置1到位置10的子View的layout参数重新计算一下呗？这当然是没有问题的。在删除了一些子View的时候，从第一个被删除的子View开始，将位于它和它后面的子View的layout的宽高及时更新，然后将那些位于可视范围之内的子View给layout出来就行了。</p>
 <p>　　不过如果做到这个程度的话，干脆把pre-layout过程也给解决了吧。下面是正篇。</p>
-<ul>
-<li>Pre-Layout</li>
-</ul>
-<p>　　如果你想自己掌控子View删除过程中，每个子View的动画过程，那么需要重写下面这个方法。</p>
-<pre><code>/**
- * If you want to customize the animation, it should return true.
- * @return
- */
-@Override
-public boolean supportsPredictiveItemAnimations() {
-    return true;
-}
-</code></pre><p>　　很简单，直接返回true就行了。如果该方法返回值为true，当你移除了某个子View并用<code>notifyItemRemoved()</code>通知RecyclerView时，<code>onLayoutChildren()</code>会被调用两次。一次是pre-layout，另一次是real-layout。</p>
-<p>　　pre-layout是指动画之前的布局，在pre-layout的过程中，我们需要把当前可视范围内的子View都给layout出来。此外，还要把移除子View的动作发生之后，将会出现在可视范围内的子View在移除动作之前对应的位置给layout出来。要注意的是，pre-layout过程中所获取到的子View是移除发生之前的。real-layout则是指移除动作发生之后的布局。在real-layout的过程中，我们需要layout出可视范围之内的子View，此外还需要把disappearingView，即原先在可视范围之内，移除动作之后移动到可视范围之外的子View给layout出来。之所以需要这两个布局，是因为LayoutManager内部是通过这两个布局来匹配移除动作前后各个子View的位置，从而产生对应的动画效果。</p>
-<p>　　那么，先看看pre-layout。当某个子View被移除时，如果调用的是<code>notifyDataSetChanged()</code>来通知RecyclerView的话，LayoutManager是无法得知哪一个View被移除的。而如果调用<code>notifyItemRemoved()</code>方法的话，则可以在LayoutManager中获取到所移除的子View的位置。</p>
-<pre><code>/**
- * Triggered with notifyItemRemoved().
- * This method will be triggered before the pre-layout for invisible items (out of bounds)
- * and after the pre-layout for visible items.
- * @param recyclerView
- * @param positionStart The start position of removed items.
- * @param itemCount The number of removed items from the start position.
- */
-@Override
-public void onItemsRemoved(RecyclerView recyclerView, int positionStart, int itemCount) {
-    ...
-}
-</code></pre><p>　　在调用了<code>notifyItemRemoved()</code>之后，LayoutManager的<code>onItemsRemoved()</code>方法会被触发。具体而言，对于在可视边界之外的View的移除操作，该方法会在pre-layout之前触发；而在可视边界之内的View的移除操作，该方法会在pre-layout之后触发。无论如何，在第一次调用<code>onLayoutChildren()</code>方法时，我们已经知道了所有位于可视范围之外的子View的移除情况。对于可视范围之内的子View，可以获取对应的RecyclerView.LayoutParams然后调用<code>RecyclerView.LayoutParams.isItemRemoved()</code>方法来确定某个子View是否是要被移除的。既然已经知道所有子View的移除状况，那么要做的事情就很明白了。</p>
-<p>　　如果第一个被移除的子View位于下边界之外，直接删除从那个位置开始所保存的layout宽高就行，可视范围内的子View无需变化。</p>
-<p>　　如果第一个被移除的子View位于可视范围之内，则我们需要layout出可视范围内的子View和将要在real-layout时出现的子View。在这个过程中，我们需要做两件事情。一件是layout出子View，另一件是计算当前layout出来的子View在real-layout时所对应的位置。这样便可以通过其real-layout时的位置来确定我们需要layout出多少子View，避免不必要的layout过程。</p>
-<p>　　如果第一个被移除的子View位于上边界之外，这时的情况最为复杂。首先确定从第一个被移除的子View的位置，然后从该位置开始，一个接一个地获取下一个位置的子View，并计算该子View在pre-layout中的位置和real-layout中的位置。如果某个子View在pre-layout中其位置在可视范围之内或者在real-layout中其位置在可视范围之内，则将其layout在pre-layout中的位置；如果两个条件都不满足，则不进行layout。通过这个过程，我们便把可视范围内的子View和将要在real-layout过程中出现在可视范围内的子View都给layout在原来的位置了。注意到在该过程中，我们计算了每个子View在real-layout中的位置。这些位置信息可以用来替换原有的位置信息，以用于real-layout中子View的layout参数更新。另外，如果某个子View在pre-layout时在可视范围之内，在real-layout时在可视范围之外的话，那么该子View就是一个disappearingView。我们可以先保存该子View的位置和layout参数，以便在real-layout的时候将其layout出来。</p>
-<ul>
-<li>Real-Layout</li>
-</ul>
-<p>　　由于我们在pre-layout过程中做了充分的准备工作，所以real-layout的过程相对简单。</p>
-<p>　　当第一个被移除的子View位于下边界或者可视范围之内时，由于我们在pre-layout过程中提前计算好了real-layout需要的子View数量，所以我们只需要将可视范围之内的子View给layout出来就行了。</p>
-<p>　　当第一个被移除的子View位于上边界之外时，由于我们在pre-layout过程中计算好了real-layout的layout参数，所以这时我们直接把pre-layout过程中计算得到的layout参数拿来用就行了。这时我们只需要做两件事情。一件是layout出可视范围内的子View，另一个是把disappearingView给layout出来。由于在pre-layout过程中提前计算了disappearingView的位置和layout参数，所以可以直接根据这些信息来获取disappearingView并layout。另外需要注意的是，对于disappearingView，需要调用<code>addDisappearingView()</code>来将其添加到RecyclerView中，毕竟disappearingView的作用在于提供动画效果，而不是真正的添加。</p>
-<p>　　以上过程仅给出轮廓介绍，具体细节可自行参考代码。</p>
-<p>-ItemAnimator</p>
-<p>　　最后说一下ItemAnimator的事情。如果用自带的DefaultItemAnimator，你会发现对于pre-layout和real-layout过程中布局不同的子View的动画效果是很生硬的，即没有宽度变化的动画效果。因此我参考了DefaultItemAnimator，重写了内部的一些方法（重写的方法存在BUG），使得其可以传递新旧的宽高信息，然而。。。并没有什么软用。因为在ItemAnimator内部的宽度渐变动画不生效，直到现在还没有找到解决办法，结果就是不得不用scale的方式来过渡宽度的变化。结果费了这么一番功夫，如果宽度变化的动画效果无效的话，感觉支持子View的remove似乎也没有必要了，除非能找到合适的动画效果。到此关于这个自定义LayoutManager的博客就暂时告一段落吧。</p>
-
+        
+          <p class="article-more-link">
+            <a href="/2016/05/02/RecyclerView-Post-2/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
       
-        <a data-url="/2016/05/02/RecyclerView-Post-2/" data-id="cinpoq3x10001rchk9bifudu6" class="article-share-link" data-share="baidu">Share</a>
+        <a data-url="/2016/05/02/RecyclerView-Post-2/" data-id="cinpp178v0001pkhku90klm4l" class="article-share-link" data-share="baidu">Share</a>
       
 
       
@@ -203,7 +167,7 @@ public void onItemsRemoved(RecyclerView recyclerView, int positionStart, int ite
     </div>
     <footer class="article-footer">
       
-        <a data-url="/2016/04/18/RecyclerView-Post-1/" data-id="cinpoq3x10000rchk068ltn2w" class="article-share-link" data-share="baidu">Share</a>
+        <a data-url="/2016/04/18/RecyclerView-Post-1/" data-id="cinpp178f0000pkhkxk5nvazo" class="article-share-link" data-share="baidu">Share</a>
       
 
       
@@ -256,7 +220,7 @@ public void onItemsRemoved(RecyclerView recyclerView, int positionStart, int ite
     </div>
     <footer class="article-footer">
       
-        <a data-url="/2016/04/13/hello-world/" data-id="cinpoq3yb000crchkkdunf6sz" class="article-share-link" data-share="baidu">Share</a>
+        <a data-url="/2016/04/13/hello-world/" data-id="cinpp178v0004pkhkzoil99es" class="article-share-link" data-share="baidu">Share</a>
       
 
       

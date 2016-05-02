@@ -16,14 +16,14 @@
 <meta property="og:description" content="在阅读过RecyclerView之自定义LayoutManager(上)之后，你已经明白LayoutManager如何layout出每一个子View以及在滚动的过程中如何实现子View的回收利用。今天我们将解决在RecyclerView中，如果子View发生增删改时，LayoutManager应该如何处理的问题。
 　　以下以当某个子View被移除时为例。
 　　现在假设这么一种情形。某个子Vie">
-<meta property="og:image" content="/post2/test.gif">
-<meta property="og:updated_time" content="2016-05-02T07:26:43.866Z">
+<meta property="og:image" content="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/test.gif">
+<meta property="og:updated_time" content="2016-05-02T07:36:56.233Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RecyclerView之自定义LayoutManager(下)">
 <meta name="twitter:description" content="在阅读过RecyclerView之自定义LayoutManager(上)之后，你已经明白LayoutManager如何layout出每一个子View以及在滚动的过程中如何实现子View的回收利用。今天我们将解决在RecyclerView中，如果子View发生增删改时，LayoutManager应该如何处理的问题。
 　　以下以当某个子View被移除时为例。
 　　现在假设这么一种情形。某个子Vie">
-<meta name="twitter:image" content="/post2/test.gif">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/test.gif">
   
     <link rel="alternative" href="/atom.xml" title="Huskyyy&#39;s backyard" type="application/atom+xml">
   
@@ -104,11 +104,12 @@
         <p>　　在阅读过<a href="http://huskyyy.github.io/2016/04/18/RecyclerView-Post-1/" target="_blank" rel="external">RecyclerView之自定义LayoutManager(上)</a>之后，你已经明白LayoutManager如何layout出每一个子View以及在滚动的过程中如何实现子View的回收利用。今天我们将解决在RecyclerView中，如果子View发生增删改时，LayoutManager应该如何处理的问题。</p>
 <p>　　以下以当某个子View被移除时为例。</p>
 <p>　　现在假设这么一种情形。某个子View被移除了。移除该子View的过程想用个动画效果过渡一下。RecyclerView有个默认使用的ItemAnimator叫DefaultItemAnimator。如果你接着上一篇文章的讲解直接使用<code>notifyItemRemoved()</code>方法来通知RecyclerView某个子View被移除了，那么默认的ItemAnimator就会被触发，移除过程的动画效果如下。</p>
-<p><img style="float:center;" src="/post2/test.gif"></p>
+<p><img style="float:center;" src="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/test.gif"></p>
 <p>　　看起来似乎还不错。但仔细一看就会发现，为啥每次移除某个子View后布局都不变呢？这时因为在我实现的LayoutManager内部，对于每个已经或者曾经layout出来的子View保存了对应的“layout出来的宽度和高度”。在移除子View后，对应的“layout出来的宽度和高度”没有及时更新，于是导致了上述的现象。如果你所定制的LayoutManager的每个子View的大小都一样，那么就不会有这种问题。那为什么要保存宽高呢？原因很简单，为了在RecyclerView往上滑动的过程中让每个子View出现在该出现的位置。</p>
 <p>　　那我在某个子View移除后，把所保存的layout出来的宽度和高度及时更新不就行了呗？更新的方式很简单，把所保存的宽高及时删掉，然后在<code>onLayoutChildren()</code>重新获取原始的宽高就好了。这时，如果你所删除的子View位于可视范围之内或者在下边界之外，那么不会有任何问题。当你删除了一个位于上边界之外的一个子View的时候，问题来了。比如说，你选中位置0的子View，然后你将RecyclerView往下滑动，直到位置0到位置10(为了方便，这里假设位置10)的子View完全不可见，然后删除该子View。这时发生了什么呢？这时位置0的子View被删除了，所以从0开始保存的所有子View的layout出来的宽高都被删了。这时你可视范围内的子View更新了。但一旦将RecyclerView往上滑动，就会发现从位置1到位置10的子View的layout完全乱了。原因在于，当删除了某个子View后，会调用LayoutManager的<code>onLayoutChildren()</code>方法来绘制视图范围内的子View。但视图范围之外的子View我们没有绘制。结果从位置1到位置10的子View的layout信息丢失了，从而当RecyclerView向上滑动的时候，对应的layout出现问题。</p>
 <p>　　那我干脆把位置1到位置10的子View的layout参数重新计算一下呗？这当然是没有问题的。在删除了一些子View的时候，从第一个被删除的子View开始，将位于它和它后面的子View的layout的宽高及时更新，然后将那些位于可视范围之内的子View给layout出来就行了。</p>
 <p>　　不过如果做到这个程度的话，干脆把pre-layout过程也给解决了吧。下面是正篇。</p>
+<a id="more"></a>
 <ul>
 <li>Pre-Layout</li>
 </ul>
@@ -154,7 +155,7 @@ public void onItemsRemoved(RecyclerView recyclerView, int positionStart, int ite
     </div>
     <footer class="article-footer">
       
-        <a data-url="/2016/05/02/RecyclerView-Post-2/" data-id="cinpoq3x10001rchk9bifudu6" class="article-share-link" data-share="baidu">Share</a>
+        <a data-url="/2016/05/02/RecyclerView-Post-2/" data-id="cinpp178v0001pkhku90klm4l" class="article-share-link" data-share="baidu">Share</a>
       
 
       
