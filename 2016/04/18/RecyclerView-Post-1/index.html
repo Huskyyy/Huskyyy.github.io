@@ -4,26 +4,26 @@
 <head>
   <meta charset="utf-8">
   
-  <title>RecycleView之自定义LayoutManager(上) | Huskyyy&#39;s backyard</title>
+  <title>RecyclerView之自定义LayoutManager(上) | Huskyyy&#39;s backyard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="很早的时候看到了这么一个类似win8的瓷片式布局。而后又学习了RecycleView的使用。心想就用RecycleView实现这个布局吧。最后成品在此。先贴上效果图。
+  <meta name="description" content="很早的时候看到了这么一个类似win8的瓷片式布局。而后又学习了RecyclerView的使用。心想就用RecyclerView实现这个布局吧。最后成品在此。先贴上效果图。
    
-　　和参考的那个布局相比，用RecycleView实现的布局能够实现View的回收，同时还支持RecycleView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放加移动，">
+　　和参考的那个布局相比，用RecyclerView实现的布局能够实现View的回收，同时还支持RecyclerView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放">
 <meta property="og:type" content="article">
-<meta property="og:title" content="RecycleView之自定义LayoutManager(上)">
-<meta property="og:url" content="/2016/04/18/RecycleView-Post-1/index.html">
+<meta property="og:title" content="RecyclerView之自定义LayoutManager(上)">
+<meta property="og:url" content="/2016/04/18/RecyclerView-Post-1/index.html">
 <meta property="og:site_name" content="Huskyyy's backyard">
-<meta property="og:description" content="很早的时候看到了这么一个类似win8的瓷片式布局。而后又学习了RecycleView的使用。心想就用RecycleView实现这个布局吧。最后成品在此。先贴上效果图。
+<meta property="og:description" content="很早的时候看到了这么一个类似win8的瓷片式布局。而后又学习了RecyclerView的使用。心想就用RecyclerView实现这个布局吧。最后成品在此。先贴上效果图。
    
-　　和参考的那个布局相比，用RecycleView实现的布局能够实现View的回收，同时还支持RecycleView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放加移动，">
+　　和参考的那个布局相比，用RecyclerView实现的布局能够实现View的回收，同时还支持RecyclerView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放">
 <meta property="og:image" content="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Base.gif">
 <meta property="og:image" content="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Gallery.gif">
-<meta property="og:updated_time" content="2016-04-24T14:01:15.769Z">
+<meta property="og:updated_time" content="2016-05-02T07:28:28.445Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="RecycleView之自定义LayoutManager(上)">
-<meta name="twitter:description" content="很早的时候看到了这么一个类似win8的瓷片式布局。而后又学习了RecycleView的使用。心想就用RecycleView实现这个布局吧。最后成品在此。先贴上效果图。
+<meta name="twitter:title" content="RecyclerView之自定义LayoutManager(上)">
+<meta name="twitter:description" content="很早的时候看到了这么一个类似win8的瓷片式布局。而后又学习了RecyclerView的使用。心想就用RecyclerView实现这个布局吧。最后成品在此。先贴上效果图。
    
-　　和参考的那个布局相比，用RecycleView实现的布局能够实现View的回收，同时还支持RecycleView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放加移动，">
+　　和参考的那个布局相比，用RecyclerView实现的布局能够实现View的回收，同时还支持RecyclerView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Base.gif">
   
     <link rel="alternative" href="/atom.xml" title="Huskyyy&#39;s backyard" type="application/atom+xml">
@@ -80,9 +80,9 @@
   </div>
 </header>
     <div class="outer">
-      <section id="main"><article id="post-RecycleView-Post-1" class="article article-type-post" itemscope itemprop="blogPost">
+      <section id="main"><article id="post-RecyclerView-Post-1" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2016/04/18/RecycleView-Post-1/" class="article-date">
+    <a href="/2016/04/18/RecyclerView-Post-1/" class="article-date">
   <time datetime="2016-04-18T12:16:03.000Z" itemprop="datePublished">2016-04-18</time>
 </a>
     
@@ -98,7 +98,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      RecycleView之自定义LayoutManager(上)
+      RecyclerView之自定义LayoutManager(上)
     </h1>
   
 
@@ -106,22 +106,23 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>　　很早的时候看到了这么一个<a href="https://github.com/dodola/DynamicCardLayout" target="_blank" rel="external">类似win8的瓷片式布局</a>。而后又学习了RecycleView的使用。心想就用RecycleView实现这个布局吧。最后成品<a href="https://github.com/Huskyyy/IrregularGridView" target="_blank" rel="external">在此</a>。先贴上效果图。</p>
+        <p>　　很早的时候看到了这么一个<a href="https://github.com/dodola/DynamicCardLayout" target="_blank" rel="external">类似win8的瓷片式布局</a>。而后又学习了RecyclerView的使用。心想就用RecyclerView实现这个布局吧。最后成品<a href="https://github.com/Huskyyy/IrregularGridView" target="_blank" rel="external">在此</a>。先贴上效果图。</p>
 <p><img style="float:left;" src="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Base.gif">  <img style="float:center;" src="https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Gallery.gif"> </p>
-<p>　　和<a href="https://github.com/dodola/DynamicCardLayout" target="_blank" rel="external">参考的那个布局</a>相比，用RecycleView实现的布局能够实现View的回收，同时还支持RecycleView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放加移动，这一块留到之后再说。</p>
+<p>　　和<a href="https://github.com/dodola/DynamicCardLayout" target="_blank" rel="external">参考的那个布局</a>相比，用RecyclerView实现的布局能够实现View的回收，同时还支持RecyclerView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放加移动，这一块留到之后再说。</p>
 <p>　　如果你英语阅读能力良好，可以直接移步<a href="http://wiresareobsolete.com/2014/09/building-a-recyclerview-layoutmanager-part-1/" target="_blank" rel="external">这里</a>。接下来的内容基本上都包含在前面链接的博客里，加上了我个人的一些理解。</p>
+<a id="more"></a>
 <ul>
 <li>基本概念的介绍</li>
 </ul>
 <p>　　1. Recycler</p>
-<p>　　在RecycleView中，Recycler负责管理子View的创建以及回收利用。在你的LayoutManager中，如果想要获取某一个子View，应调用Recycler的<code>getViewForPosition()</code>方法来获取，该方法会返回已绑定好数据的View对象。Recycler会根据具体情况来决定是否创建一个子View，或是将某个已回收的子View再利用。那什么时候会创建一个子View，什么时候又会将已回收的子View再利用呢？这又涉及到被回收的子View的两种状态，scrap和recycle。</p>
+<p>　　在RecyclerView中，Recycler负责管理子View的创建以及回收利用。在你的LayoutManager中，如果想要获取某一个子View，应调用Recycler的<code>getViewForPosition()</code>方法来获取，该方法会返回已绑定好数据的View对象。Recycler会根据具体情况来决定是否创建一个子View，或是将某个已回收的子View再利用。那什么时候会创建一个子View，什么时候又会将已回收的子View再利用呢？这又涉及到被回收的子View的两种状态，scrap和recycle。</p>
 <p>　　2. Scrap &amp; Recycle</p>
 <p>　　Recycler所缓存的子View有两种状态，即scrap状态和recycle状态。当你在一次layout的过程中，想重新组织子View的布局，通常应该先对当前attached的子View调用<code>detachAndScrapView()</code>来回收子View或者直接调用<code>detachAndScrapAttachedViews()</code>回收所有attached的子View。Recycler会判断是否将子View缓存到scrap堆中或者是recycle池中。而如果你想将不可见的子View进行回收，则应该调用<code>removeAndRecycleView()</code>或者类似的方法来将View直接回收到recycle池中。然后，在layout的过程中，当你调用Recycler的<code>getViewForPosition()</code>来获取某个位置的子View时，Recycler会优先在scrap堆中查找是否有对应位置的子View，找到对应的子View并且满足一定的条件（例如数据没有变化等），则会将其直接返回。否则Recycler会在recycle池中查找可再利用的子View并重新绑定数据（即调用<code>onBindViewHolder()</code>方法）再将其返回。由此可见，scrap适用于重新布局时子View需要立即被layout出来时使用，而recycle适用于将子View完全回收时使用。实际上Recycler获取子View的过程更为复杂，但原理是类似的。</p>
-<p>　　首先说明一下LayoutManager的作用吧。RecycleView的LayoutManager负责子View的具体布局，以及当用户与RecycleView交互（例如滚动以及对子View进行增删改查等）时，子View的具体变化（包括显示，移动，回收等）。我们先不考虑太多复杂的功能，就想想第一次初始化的时候子View该如何布局吧。</p>
+<p>　　首先说明一下LayoutManager的作用吧。RecyclerView的LayoutManager负责子View的具体布局，以及当用户与RecyclerView交互（例如滚动以及对子View进行增删改查等）时，子View的具体变化（包括显示，移动，回收等）。我们先不考虑太多复杂的功能，就想想第一次初始化的时候子View该如何布局吧。</p>
 <ul>
 <li>只考虑初始化时的layout过程</li>
 </ul>
-<p>　　首先，如果要自定义一个LayoutManager，那么必须要实现RecycleView.LayoutManager中的唯一一个抽象方法，即</p>
+<p>　　首先，如果要自定义一个LayoutManager，那么必须要实现RecyclerView.LayoutManager中的唯一一个抽象方法，即</p>
 <pre><code>public abstract LayoutParams generateDefaultLayoutParams();
 </code></pre><p>　　实现的方法可以很简单，例如：</p>
 <pre><code>@Override
@@ -134,7 +135,7 @@ public RecyclerView.LayoutParams generateDefaultLayoutParams() {
 <pre><code>public void onLayoutChildren(Recycler recycler, State state) {
     Log.e(TAG, &quot;You must override onLayoutChildren(Recycler recycler, State state) &quot;);
 }
-</code></pre><p>　　可以说<code>onLayoutChildren()</code>方法是LayoutManager中最为关键的方法之一吧。<code>onLayoutChildren()</code>主要负责子View的layout过程。具体而言，在RecycleView初始化的时候，以及当子View发生改变（增删改等）时，都会触发<code>onLayoutChildren()</code>方法。先考虑初始化时，我们要干什么。</p>
+</code></pre><p>　　可以说<code>onLayoutChildren()</code>方法是LayoutManager中最为关键的方法之一吧。<code>onLayoutChildren()</code>主要负责子View的layout过程。具体而言，在RecyclerView初始化的时候，以及当子View发生改变（增删改等）时，都会触发<code>onLayoutChildren()</code>方法。先考虑初始化时，我们要干什么。</p>
 <p>　　初始化的时候，<code>onLayoutChildren()</code>需要负责将子View绘制出来。如果你不了解View的绘制流程，可以参考<a href="http://blog.csdn.net/guolin_blog/article/details/16330267" target="_blank" rel="external">这里</a>。对于每一个子View，大概的绘制流程如下（仅作步骤参考）。</p>
 <pre><code>private void layoutChunk(RecyclerView.Recycler recycler, RecyclerView.State state, boolean isFillBottom, boolean isForAnimation){
 
@@ -180,19 +181,19 @@ public RecyclerView.LayoutParams generateDefaultLayoutParams() {
     // update some parameters
     ......
 }    
-</code></pre><p>　　首先，我们通过<code>recycler.getViewForPosition()</code>方法获取当前要绘制出来的子View。接下来我们需要计算出该子View被绘制出来的具体位置。该位置分别由子View的左右上下边界来确定。这部分的逻辑跟你的RecycleView的具体类型有关。例如对于ListView类型的RecycleView，其左右边界就是RecycleView的左右边界，上下边界则由当前子View的位置来计算出来。当然实际上还要考虑RecycleView的padding设置以及子View的margin，decoration的尺寸。注意这里的边界的计算是相对于RecycleView而言的。</p>
-<p>　　接下来调用<code>addView()</code>将该子View添加到当前的RecycleView中。注意<code>addView()</code>方法可以带第二个参数，其第二个参数决定了当前添加到RecycleView中的子View的index。这里还要解释一下position和index的区别。在写LayoutManager的过程中，会看到带有position和index的不同方法，通常position对应的是该子View在Adapter中的真实位置，而index对应了该子View在RecycleView所保存的所有子View里的相对位置。</p>
+</code></pre><p>　　首先，我们通过<code>recycler.getViewForPosition()</code>方法获取当前要绘制出来的子View。接下来我们需要计算出该子View被绘制出来的具体位置。该位置分别由子View的左右上下边界来确定。这部分的逻辑跟你的RecyclerView的具体类型有关。例如对于ListView类型的RecyclerView，其左右边界就是RecyclerView的左右边界，上下边界则由当前子View的位置来计算出来。当然实际上还要考虑RecyclerView的padding设置以及子View的margin，decoration的尺寸。注意这里的边界的计算是相对于RecyclerView而言的。</p>
+<p>　　接下来调用<code>addView()</code>将该子View添加到当前的RecyclerView中。注意<code>addView()</code>方法可以带第二个参数，其第二个参数决定了当前添加到RecyclerView中的子View的index。这里还要解释一下position和index的区别。在写LayoutManager的过程中，会看到带有position和index的不同方法，通常position对应的是该子View在Adapter中的真实位置，而index对应了该子View在RecyclerView所保存的所有子View里的相对位置。</p>
 <p>　　确定了子View的layout的具体位置后，接下来就是正常的View的绘制流程了。先调用View的<code>measure()</code>或者类似的方法测量子View的大小，当然是要考虑子View的margin，decoration参数。然后调用<code>layoutDecorated()</code>方法将子View布局出来。具体的<code>onDraw()</code>方法则由子View自己实现，并不需要我们处理。</p>
 <p>　　经过这么一番折腾，一个子View就能够绘制出来了。实际上我们需要绘制很多个子View，所以需要在结束的时候更新一些和布局相关的参数。</p>
 <ul>
 <li>考虑视图的滚动逻辑</li>
 </ul>
-<p>　　RecycleView，顾名思义，当然是能够将不必要的View及时回收再利用，减少占用的内存。当我们处理完初始化流程后，自然需要支持RecycleView的滚动逻辑以及子View的及时回收。如果要支持竖直方向上的滚动，那么我们需要覆盖这个方法：</p>
+<p>　　RecyclerView，顾名思义，当然是能够将不必要的View及时回收再利用，减少占用的内存。当我们处理完初始化流程后，自然需要支持RecyclerView的滚动逻辑以及子View的及时回收。如果要支持竖直方向上的滚动，那么我们需要覆盖这个方法：</p>
 <pre><code>@Override
 public boolean canScrollVertically(){
     return true;
 }
-</code></pre><p>　　如果要支持水平方向上的滚动，则需要覆盖<code>canScrollHorizontally()</code>方法。假设我们支持竖直方向上的滚动，那么当用户在RecycleView内滑动时，就会触发<code>scrollVerticallyBy()</code>方法。因此我们需要覆盖这个方法，实现子View的滚动和回收。实现的方法因人而异，这里给出一种参考方法。该方法的大致流程如下。</p>
+</code></pre><p>　　如果要支持水平方向上的滚动，则需要覆盖<code>canScrollHorizontally()</code>方法。假设我们支持竖直方向上的滚动，那么当用户在RecyclerView内滑动时，就会触发<code>scrollVerticallyBy()</code>方法。因此我们需要覆盖这个方法，实现子View的滚动和回收。实现的方法因人而异，这里给出一种参考方法。该方法的大致流程如下。</p>
 <pre><code>@Override
 public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state){
 
@@ -231,28 +232,37 @@ public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerVi
 }
 </code></pre><p>　　其中dy表示滑动的距离。先只考虑用户从下往上滑动的情形，此时整个列表往上滚动，dy&gt;0。需要我们做的事情一共有这么几件。</p>
 <p>　　第一步，计算出我们需要填充的空间，初始化相关的参数。第二步，调用相应的方法（在这里是<code>fillGrid()</code>）将需要填充的部分填充完，具体的填充过程跟上面的<code>layoutChunk()</code>过程类似。实际上可能由于没有item需要layout（即滑动到边界了）导致无法将相应的空间填满，因此需要根据实际layout的情况来确定真正填充了多少，并以此来确定子View能够滚动的距离。这就是第三步，确定实际滚动的距离delta。第四，调用<code>offsetChildrenVertical()</code>将所有子View移动一段距离。最后，将完全移动到屏幕外的子View回收掉。对于dy&gt;0的情况，我这里调用的是<code>recycleTopInvisibleViews(recycler)</code>方法，即回收掉移动到上边界之外的子View，其内部调用<code>removeAndRecycleView()</code>来进行子View的回收。当用户从上往下滑动时，对应的处理过程类似，这里就不再重复了。</p>
-<p>　　以上就是自定义LayoutManager中，如何进行第一次layout，以及如何应对滚动逻辑的大致过程。如果你还想考虑子View发生增删改时，LayoutManager的处理，可以继续阅读RecycleView之自定义LayoutManager(下)。</p>
+<p>　　以上就是自定义LayoutManager中，如何进行第一次layout，以及如何应对滚动逻辑的大致过程。如果你还想考虑子View发生增删改时，LayoutManager的处理，可以继续阅读<a href="http://huskyyy.github.io/2016/05/02/RecyclerView-Post-2/" target="_blank" rel="external">RecyclerView之自定义LayoutManager(下)</a></p>
 <p>　　</p>
 
       
     </div>
     <footer class="article-footer">
       
-        <a data-url="/2016/04/18/RecycleView-Post-1/" data-id="cinoqrrai00000ghkas0p2qmp" class="article-share-link" data-share="baidu">Share</a>
+        <a data-url="/2016/04/18/RecyclerView-Post-1/" data-id="cinpoq3x10000rchk068ltn2w" class="article-share-link" data-share="baidu">Share</a>
       
 
       
-        <a href="/2016/04/18/RecycleView-Post-1/#ds-thread" class="article-comment-link">Comments</a>
+        <a href="/2016/04/18/RecyclerView-Post-1/#ds-thread" class="article-comment-link">Comments</a>
       
 
       
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/LayoutManager/">LayoutManager</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RecycleView/">RecycleView</a></li></ul>
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/LayoutManager/">LayoutManager</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RecyclerView/">RecyclerView</a></li></ul>
 
     </footer>
   </div>
   
     
 <nav id="article-nav">
+  
+    <a href="/2016/05/02/RecyclerView-Post-2/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          RecyclerView之自定义LayoutManager(下)
+        
+      </div>
+    </a>
   
   
     <a href="/2016/04/13/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
@@ -267,7 +277,7 @@ public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerVi
 
 
   <section id="comments">
-    <div id="ds-thread" class="ds-thread" data-thread-key="2016/04/18/RecycleView-Post-1/" data-title="RecycleView之自定义LayoutManager(上)" data-url="/2016/04/18/RecycleView-Post-1/"></div>
+    <div id="ds-thread" class="ds-thread" data-thread-key="2016/04/18/RecyclerView-Post-1/" data-title="RecyclerView之自定义LayoutManager(上)" data-url="/2016/04/18/RecyclerView-Post-1/"></div>
   </section>
 </section>
       
@@ -286,7 +296,7 @@ public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerVi
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/LayoutManager/">LayoutManager</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RecycleView/">RecycleView</a><span class="tag-list-count">1</span></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/LayoutManager/">LayoutManager</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RecyclerView/">RecyclerView</a><span class="tag-list-count">2</span></li></ul>
     </div>
   </div>
 
@@ -295,7 +305,7 @@ public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerVi
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/LayoutManager/" style="font-size: 10px;">LayoutManager</a> <a href="/tags/RecycleView/" style="font-size: 10px;">RecycleView</a>
+      <a href="/tags/LayoutManager/" style="font-size: 10px;">LayoutManager</a> <a href="/tags/RecyclerView/" style="font-size: 10px;">RecyclerView</a>
     </div>
   </div>
 
@@ -304,7 +314,7 @@ public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerVi
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">2</span></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">April 2016</a><span class="archive-list-count">2</span></li></ul>
     </div>
   </div>
 
@@ -316,7 +326,11 @@ public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerVi
       <ul>
         
           <li>
-            <a href="/2016/04/18/RecycleView-Post-1/">RecycleView之自定义LayoutManager(上)</a>
+            <a href="/2016/05/02/RecyclerView-Post-2/">RecyclerView之自定义LayoutManager(下)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/04/18/RecyclerView-Post-1/">RecyclerView之自定义LayoutManager(上)</a>
           </li>
         
           <li>

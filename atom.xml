@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="/"/>
-  <updated>2016-04-24T14:01:15.769Z</updated>
+  <updated>2016-05-02T07:26:43.866Z</updated>
   <id>/</id>
   
   <author>
@@ -16,28 +16,99 @@
   <generator uri="http://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>RecycleView之自定义LayoutManager(上)</title>
-    <link href="/2016/04/18/RecycleView-Post-1/"/>
-    <id>/2016/04/18/RecycleView-Post-1/</id>
-    <published>2016-04-18T12:16:03.000Z</published>
-    <updated>2016-04-24T14:01:15.769Z</updated>
+    <title>RecyclerView之自定义LayoutManager(下)</title>
+    <link href="/2016/05/02/RecyclerView-Post-2/"/>
+    <id>/2016/05/02/RecyclerView-Post-2/</id>
+    <published>2016-05-02T03:43:06.000Z</published>
+    <updated>2016-05-02T07:26:43.866Z</updated>
     
-    <content type="html">&lt;p&gt;　　很早的时候看到了这么一个&lt;a href=&quot;https://github.com/dodola/DynamicCardLayout&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;类似win8的瓷片式布局&lt;/a&gt;。而后又学习了RecycleView的使用。心想就用RecycleView实现这个布局吧。最后成品&lt;a href=&quot;https://github.com/Huskyyy/IrregularGridView&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;在此&lt;/a&gt;。先贴上效果图。&lt;/p&gt;
+    <content type="html">&lt;p&gt;　　在阅读过&lt;a href=&quot;http://huskyyy.github.io/2016/04/18/RecyclerView-Post-1/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;RecyclerView之自定义LayoutManager(上)&lt;/a&gt;之后，你已经明白LayoutManager如何layout出每一个子View以及在滚动的过程中如何实现子View的回收利用。今天我们将解决在RecyclerView中，如果子View发生增删改时，LayoutManager应该如何处理的问题。&lt;/p&gt;
+&lt;p&gt;　　以下以当某个子View被移除时为例。&lt;/p&gt;
+&lt;p&gt;　　现在假设这么一种情形。某个子View被移除了。移除该子View的过程想用个动画效果过渡一下。RecyclerView有个默认使用的ItemAnimator叫DefaultItemAnimator。如果你接着上一篇文章的讲解直接使用&lt;code&gt;notifyItemRemoved()&lt;/code&gt;方法来通知RecyclerView某个子View被移除了，那么默认的ItemAnimator就会被触发，移除过程的动画效果如下。&lt;/p&gt;
+&lt;p&gt;&lt;img style=&quot;float:center;&quot; src=&quot;/post2/test.gif&quot;&gt;&lt;/p&gt;
+&lt;p&gt;　　看起来似乎还不错。但仔细一看就会发现，为啥每次移除某个子View后布局都不变呢？这时因为在我实现的LayoutManager内部，对于每个已经或者曾经layout出来的子View保存了对应的“layout出来的宽度和高度”。在移除子View后，对应的“layout出来的宽度和高度”没有及时更新，于是导致了上述的现象。如果你所定制的LayoutManager的每个子View的大小都一样，那么就不会有这种问题。那为什么要保存宽高呢？原因很简单，为了在RecyclerView往上滑动的过程中让每个子View出现在该出现的位置。&lt;/p&gt;
+&lt;p&gt;　　那我在某个子View移除后，把所保存的layout出来的宽度和高度及时更新不就行了呗？更新的方式很简单，把所保存的宽高及时删掉，然后在&lt;code&gt;onLayoutChildren()&lt;/code&gt;重新获取原始的宽高就好了。这时，如果你所删除的子View位于可视范围之内或者在下边界之外，那么不会有任何问题。当你删除了一个位于上边界之外的一个子View的时候，问题来了。比如说，你选中位置0的子View，然后你将RecyclerView往下滑动，直到位置0到位置10(为了方便，这里假设位置10)的子View完全不可见，然后删除该子View。这时发生了什么呢？这时位置0的子View被删除了，所以从0开始保存的所有子View的layout出来的宽高都被删了。这时你可视范围内的子View更新了。但一旦将RecyclerView往上滑动，就会发现从位置1到位置10的子View的layout完全乱了。原因在于，当删除了某个子View后，会调用LayoutManager的&lt;code&gt;onLayoutChildren()&lt;/code&gt;方法来绘制视图范围内的子View。但视图范围之外的子View我们没有绘制。结果从位置1到位置10的子View的layout信息丢失了，从而当RecyclerView向上滑动的时候，对应的layout出现问题。&lt;/p&gt;
+&lt;p&gt;　　那我干脆把位置1到位置10的子View的layout参数重新计算一下呗？这当然是没有问题的。在删除了一些子View的时候，从第一个被删除的子View开始，将位于它和它后面的子View的layout的宽高及时更新，然后将那些位于可视范围之内的子View给layout出来就行了。&lt;/p&gt;
+&lt;p&gt;　　不过如果做到这个程度的话，干脆把pre-layout过程也给解决了吧。下面是正篇。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pre-Layout&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;　　如果你想自己掌控子View删除过程中，每个子View的动画过程，那么需要重写下面这个方法。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * If you want to customize the animation, it should return true.
+ * @return
+ */
+@Override
+public boolean supportsPredictiveItemAnimations() {
+    return true;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　很简单，直接返回true就行了。如果该方法返回值为true，当你移除了某个子View并用&lt;code&gt;notifyItemRemoved()&lt;/code&gt;通知RecyclerView时，&lt;code&gt;onLayoutChildren()&lt;/code&gt;会被调用两次。一次是pre-layout，另一次是real-layout。&lt;/p&gt;
+&lt;p&gt;　　pre-layout是指动画之前的布局，在pre-layout的过程中，我们需要把当前可视范围内的子View都给layout出来。此外，还要把移除子View的动作发生之后，将会出现在可视范围内的子View在移除动作之前对应的位置给layout出来。要注意的是，pre-layout过程中所获取到的子View是移除发生之前的。real-layout则是指移除动作发生之后的布局。在real-layout的过程中，我们需要layout出可视范围之内的子View，此外还需要把disappearingView，即原先在可视范围之内，移除动作之后移动到可视范围之外的子View给layout出来。之所以需要这两个布局，是因为LayoutManager内部是通过这两个布局来匹配移除动作前后各个子View的位置，从而产生对应的动画效果。&lt;/p&gt;
+&lt;p&gt;　　那么，先看看pre-layout。当某个子View被移除时，如果调用的是&lt;code&gt;notifyDataSetChanged()&lt;/code&gt;来通知RecyclerView的话，LayoutManager是无法得知哪一个View被移除的。而如果调用&lt;code&gt;notifyItemRemoved()&lt;/code&gt;方法的话，则可以在LayoutManager中获取到所移除的子View的位置。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;/**
+ * Triggered with notifyItemRemoved().
+ * This method will be triggered before the pre-layout for invisible items (out of bounds)
+ * and after the pre-layout for visible items.
+ * @param recyclerView
+ * @param positionStart The start position of removed items.
+ * @param itemCount The number of removed items from the start position.
+ */
+@Override
+public void onItemsRemoved(RecyclerView recyclerView, int positionStart, int itemCount) {
+    ...
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　在调用了&lt;code&gt;notifyItemRemoved()&lt;/code&gt;之后，LayoutManager的&lt;code&gt;onItemsRemoved()&lt;/code&gt;方法会被触发。具体而言，对于在可视边界之外的View的移除操作，该方法会在pre-layout之前触发；而在可视边界之内的View的移除操作，该方法会在pre-layout之后触发。无论如何，在第一次调用&lt;code&gt;onLayoutChildren()&lt;/code&gt;方法时，我们已经知道了所有位于可视范围之外的子View的移除情况。对于可视范围之内的子View，可以获取对应的RecyclerView.LayoutParams然后调用&lt;code&gt;RecyclerView.LayoutParams.isItemRemoved()&lt;/code&gt;方法来确定某个子View是否是要被移除的。既然已经知道所有子View的移除状况，那么要做的事情就很明白了。&lt;/p&gt;
+&lt;p&gt;　　如果第一个被移除的子View位于下边界之外，直接删除从那个位置开始所保存的layout宽高就行，可视范围内的子View无需变化。&lt;/p&gt;
+&lt;p&gt;　　如果第一个被移除的子View位于可视范围之内，则我们需要layout出可视范围内的子View和将要在real-layout时出现的子View。在这个过程中，我们需要做两件事情。一件是layout出子View，另一件是计算当前layout出来的子View在real-layout时所对应的位置。这样便可以通过其real-layout时的位置来确定我们需要layout出多少子View，避免不必要的layout过程。&lt;/p&gt;
+&lt;p&gt;　　如果第一个被移除的子View位于上边界之外，这时的情况最为复杂。首先确定从第一个被移除的子View的位置，然后从该位置开始，一个接一个地获取下一个位置的子View，并计算该子View在pre-layout中的位置和real-layout中的位置。如果某个子View在pre-layout中其位置在可视范围之内或者在real-layout中其位置在可视范围之内，则将其layout在pre-layout中的位置；如果两个条件都不满足，则不进行layout。通过这个过程，我们便把可视范围内的子View和将要在real-layout过程中出现在可视范围内的子View都给layout在原来的位置了。注意到在该过程中，我们计算了每个子View在real-layout中的位置。这些位置信息可以用来替换原有的位置信息，以用于real-layout中子View的layout参数更新。另外，如果某个子View在pre-layout时在可视范围之内，在real-layout时在可视范围之外的话，那么该子View就是一个disappearingView。我们可以先保存该子View的位置和layout参数，以便在real-layout的时候将其layout出来。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Real-Layout&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;　　由于我们在pre-layout过程中做了充分的准备工作，所以real-layout的过程相对简单。&lt;/p&gt;
+&lt;p&gt;　　当第一个被移除的子View位于下边界或者可视范围之内时，由于我们在pre-layout过程中提前计算好了real-layout需要的子View数量，所以我们只需要将可视范围之内的子View给layout出来就行了。&lt;/p&gt;
+&lt;p&gt;　　当第一个被移除的子View位于上边界之外时，由于我们在pre-layout过程中计算好了real-layout的layout参数，所以这时我们直接把pre-layout过程中计算得到的layout参数拿来用就行了。这时我们只需要做两件事情。一件是layout出可视范围内的子View，另一个是把disappearingView给layout出来。由于在pre-layout过程中提前计算了disappearingView的位置和layout参数，所以可以直接根据这些信息来获取disappearingView并layout。另外需要注意的是，对于disappearingView，需要调用&lt;code&gt;addDisappearingView()&lt;/code&gt;来将其添加到RecyclerView中，毕竟disappearingView的作用在于提供动画效果，而不是真正的添加。&lt;/p&gt;
+&lt;p&gt;　　以上过程仅给出轮廓介绍，具体细节可自行参考代码。&lt;/p&gt;
+&lt;p&gt;-ItemAnimator&lt;/p&gt;
+&lt;p&gt;　　最后说一下ItemAnimator的事情。如果用自带的DefaultItemAnimator，你会发现对于pre-layout和real-layout过程中布局不同的子View的动画效果是很生硬的，即没有宽度变化的动画效果。因此我参考了DefaultItemAnimator，重写了内部的一些方法（重写的方法存在BUG），使得其可以传递新旧的宽高信息，然而。。。并没有什么软用。因为在ItemAnimator内部的宽度渐变动画不生效，直到现在还没有找到解决办法，结果就是不得不用scale的方式来过渡宽度的变化。结果费了这么一番功夫，如果宽度变化的动画效果无效的话，感觉支持子View的remove似乎也没有必要了，除非能找到合适的动画效果。到此关于这个自定义LayoutManager的博客就暂时告一段落吧。&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;　　在阅读过&lt;a href=&quot;http://huskyyy.github.io/2016/04/18/RecyclerView-Post-1/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;RecyclerView之自定义LayoutManager(上)&lt;
+    
+    </summary>
+    
+    
+      <category term="RecyclerView" scheme="/tags/RecyclerView/"/>
+    
+      <category term="LayoutManager" scheme="/tags/LayoutManager/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>RecyclerView之自定义LayoutManager(上)</title>
+    <link href="/2016/04/18/RecyclerView-Post-1/"/>
+    <id>/2016/04/18/RecyclerView-Post-1/</id>
+    <published>2016-04-18T12:16:03.000Z</published>
+    <updated>2016-05-02T07:28:28.445Z</updated>
+    
+    <content type="html">&lt;p&gt;　　很早的时候看到了这么一个&lt;a href=&quot;https://github.com/dodola/DynamicCardLayout&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;类似win8的瓷片式布局&lt;/a&gt;。而后又学习了RecyclerView的使用。心想就用RecyclerView实现这个布局吧。最后成品&lt;a href=&quot;https://github.com/Huskyyy/IrregularGridView&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;在此&lt;/a&gt;。先贴上效果图。&lt;/p&gt;
 &lt;p&gt;&lt;img style=&quot;float:left;&quot; src=&quot;https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Base.gif&quot;&gt;  &lt;img style=&quot;float:center;&quot; src=&quot;https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Gallery.gif&quot;&gt; &lt;/p&gt;
-&lt;p&gt;　　和&lt;a href=&quot;https://github.com/dodola/DynamicCardLayout&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;参考的那个布局&lt;/a&gt;相比，用RecycleView实现的布局能够实现View的回收，同时还支持RecycleView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放加移动，这一块留到之后再说。&lt;/p&gt;
+&lt;p&gt;　　和&lt;a href=&quot;https://github.com/dodola/DynamicCardLayout&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;参考的那个布局&lt;/a&gt;相比，用RecyclerView实现的布局能够实现View的回收，同时还支持RecyclerView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放加移动，这一块留到之后再说。&lt;/p&gt;
 &lt;p&gt;　　如果你英语阅读能力良好，可以直接移步&lt;a href=&quot;http://wiresareobsolete.com/2014/09/building-a-recyclerview-layoutmanager-part-1/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;这里&lt;/a&gt;。接下来的内容基本上都包含在前面链接的博客里，加上了我个人的一些理解。&lt;/p&gt;
+&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;
 &lt;ul&gt;
 &lt;li&gt;基本概念的介绍&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;　　1. Recycler&lt;/p&gt;
-&lt;p&gt;　　在RecycleView中，Recycler负责管理子View的创建以及回收利用。在你的LayoutManager中，如果想要获取某一个子View，应调用Recycler的&lt;code&gt;getViewForPosition()&lt;/code&gt;方法来获取，该方法会返回已绑定好数据的View对象。Recycler会根据具体情况来决定是否创建一个子View，或是将某个已回收的子View再利用。那什么时候会创建一个子View，什么时候又会将已回收的子View再利用呢？这又涉及到被回收的子View的两种状态，scrap和recycle。&lt;/p&gt;
+&lt;p&gt;　　在RecyclerView中，Recycler负责管理子View的创建以及回收利用。在你的LayoutManager中，如果想要获取某一个子View，应调用Recycler的&lt;code&gt;getViewForPosition()&lt;/code&gt;方法来获取，该方法会返回已绑定好数据的View对象。Recycler会根据具体情况来决定是否创建一个子View，或是将某个已回收的子View再利用。那什么时候会创建一个子View，什么时候又会将已回收的子View再利用呢？这又涉及到被回收的子View的两种状态，scrap和recycle。&lt;/p&gt;
 &lt;p&gt;　　2. Scrap &amp;amp; Recycle&lt;/p&gt;
 &lt;p&gt;　　Recycler所缓存的子View有两种状态，即scrap状态和recycle状态。当你在一次layout的过程中，想重新组织子View的布局，通常应该先对当前attached的子View调用&lt;code&gt;detachAndScrapView()&lt;/code&gt;来回收子View或者直接调用&lt;code&gt;detachAndScrapAttachedViews()&lt;/code&gt;回收所有attached的子View。Recycler会判断是否将子View缓存到scrap堆中或者是recycle池中。而如果你想将不可见的子View进行回收，则应该调用&lt;code&gt;removeAndRecycleView()&lt;/code&gt;或者类似的方法来将View直接回收到recycle池中。然后，在layout的过程中，当你调用Recycler的&lt;code&gt;getViewForPosition()&lt;/code&gt;来获取某个位置的子View时，Recycler会优先在scrap堆中查找是否有对应位置的子View，找到对应的子View并且满足一定的条件（例如数据没有变化等），则会将其直接返回。否则Recycler会在recycle池中查找可再利用的子View并重新绑定数据（即调用&lt;code&gt;onBindViewHolder()&lt;/code&gt;方法）再将其返回。由此可见，scrap适用于重新布局时子View需要立即被layout出来时使用，而recycle适用于将子View完全回收时使用。实际上Recycler获取子View的过程更为复杂，但原理是类似的。&lt;/p&gt;
-&lt;p&gt;　　首先说明一下LayoutManager的作用吧。RecycleView的LayoutManager负责子View的具体布局，以及当用户与RecycleView交互（例如滚动以及对子View进行增删改查等）时，子View的具体变化（包括显示，移动，回收等）。我们先不考虑太多复杂的功能，就想想第一次初始化的时候子View该如何布局吧。&lt;/p&gt;
+&lt;p&gt;　　首先说明一下LayoutManager的作用吧。RecyclerView的LayoutManager负责子View的具体布局，以及当用户与RecyclerView交互（例如滚动以及对子View进行增删改查等）时，子View的具体变化（包括显示，移动，回收等）。我们先不考虑太多复杂的功能，就想想第一次初始化的时候子View该如何布局吧。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;只考虑初始化时的layout过程&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;　　首先，如果要自定义一个LayoutManager，那么必须要实现RecycleView.LayoutManager中的唯一一个抽象方法，即&lt;/p&gt;
+&lt;p&gt;　　首先，如果要自定义一个LayoutManager，那么必须要实现RecyclerView.LayoutManager中的唯一一个抽象方法，即&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;public abstract LayoutParams generateDefaultLayoutParams();
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　实现的方法可以很简单，例如：&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;@Override
@@ -50,7 +121,7 @@ public RecyclerView.LayoutParams generateDefaultLayoutParams() {
 &lt;pre&gt;&lt;code&gt;public void onLayoutChildren(Recycler recycler, State state) {
     Log.e(TAG, &amp;quot;You must override onLayoutChildren(Recycler recycler, State state) &amp;quot;);
 }
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　可以说&lt;code&gt;onLayoutChildren()&lt;/code&gt;方法是LayoutManager中最为关键的方法之一吧。&lt;code&gt;onLayoutChildren()&lt;/code&gt;主要负责子View的layout过程。具体而言，在RecycleView初始化的时候，以及当子View发生改变（增删改等）时，都会触发&lt;code&gt;onLayoutChildren()&lt;/code&gt;方法。先考虑初始化时，我们要干什么。&lt;/p&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　可以说&lt;code&gt;onLayoutChildren()&lt;/code&gt;方法是LayoutManager中最为关键的方法之一吧。&lt;code&gt;onLayoutChildren()&lt;/code&gt;主要负责子View的layout过程。具体而言，在RecyclerView初始化的时候，以及当子View发生改变（增删改等）时，都会触发&lt;code&gt;onLayoutChildren()&lt;/code&gt;方法。先考虑初始化时，我们要干什么。&lt;/p&gt;
 &lt;p&gt;　　初始化的时候，&lt;code&gt;onLayoutChildren()&lt;/code&gt;需要负责将子View绘制出来。如果你不了解View的绘制流程，可以参考&lt;a href=&quot;http://blog.csdn.net/guolin_blog/article/details/16330267&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;这里&lt;/a&gt;。对于每一个子View，大概的绘制流程如下（仅作步骤参考）。&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;private void layoutChunk(RecyclerView.Recycler recycler, RecyclerView.State state, boolean isFillBottom, boolean isForAnimation){
 
@@ -96,19 +167,19 @@ public RecyclerView.LayoutParams generateDefaultLayoutParams() {
     // update some parameters
     ......
 }    
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　首先，我们通过&lt;code&gt;recycler.getViewForPosition()&lt;/code&gt;方法获取当前要绘制出来的子View。接下来我们需要计算出该子View被绘制出来的具体位置。该位置分别由子View的左右上下边界来确定。这部分的逻辑跟你的RecycleView的具体类型有关。例如对于ListView类型的RecycleView，其左右边界就是RecycleView的左右边界，上下边界则由当前子View的位置来计算出来。当然实际上还要考虑RecycleView的padding设置以及子View的margin，decoration的尺寸。注意这里的边界的计算是相对于RecycleView而言的。&lt;/p&gt;
-&lt;p&gt;　　接下来调用&lt;code&gt;addView()&lt;/code&gt;将该子View添加到当前的RecycleView中。注意&lt;code&gt;addView()&lt;/code&gt;方法可以带第二个参数，其第二个参数决定了当前添加到RecycleView中的子View的index。这里还要解释一下position和index的区别。在写LayoutManager的过程中，会看到带有position和index的不同方法，通常position对应的是该子View在Adapter中的真实位置，而index对应了该子View在RecycleView所保存的所有子View里的相对位置。&lt;/p&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　首先，我们通过&lt;code&gt;recycler.getViewForPosition()&lt;/code&gt;方法获取当前要绘制出来的子View。接下来我们需要计算出该子View被绘制出来的具体位置。该位置分别由子View的左右上下边界来确定。这部分的逻辑跟你的RecyclerView的具体类型有关。例如对于ListView类型的RecyclerView，其左右边界就是RecyclerView的左右边界，上下边界则由当前子View的位置来计算出来。当然实际上还要考虑RecyclerView的padding设置以及子View的margin，decoration的尺寸。注意这里的边界的计算是相对于RecyclerView而言的。&lt;/p&gt;
+&lt;p&gt;　　接下来调用&lt;code&gt;addView()&lt;/code&gt;将该子View添加到当前的RecyclerView中。注意&lt;code&gt;addView()&lt;/code&gt;方法可以带第二个参数，其第二个参数决定了当前添加到RecyclerView中的子View的index。这里还要解释一下position和index的区别。在写LayoutManager的过程中，会看到带有position和index的不同方法，通常position对应的是该子View在Adapter中的真实位置，而index对应了该子View在RecyclerView所保存的所有子View里的相对位置。&lt;/p&gt;
 &lt;p&gt;　　确定了子View的layout的具体位置后，接下来就是正常的View的绘制流程了。先调用View的&lt;code&gt;measure()&lt;/code&gt;或者类似的方法测量子View的大小，当然是要考虑子View的margin，decoration参数。然后调用&lt;code&gt;layoutDecorated()&lt;/code&gt;方法将子View布局出来。具体的&lt;code&gt;onDraw()&lt;/code&gt;方法则由子View自己实现，并不需要我们处理。&lt;/p&gt;
 &lt;p&gt;　　经过这么一番折腾，一个子View就能够绘制出来了。实际上我们需要绘制很多个子View，所以需要在结束的时候更新一些和布局相关的参数。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;考虑视图的滚动逻辑&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;　　RecycleView，顾名思义，当然是能够将不必要的View及时回收再利用，减少占用的内存。当我们处理完初始化流程后，自然需要支持RecycleView的滚动逻辑以及子View的及时回收。如果要支持竖直方向上的滚动，那么我们需要覆盖这个方法：&lt;/p&gt;
+&lt;p&gt;　　RecyclerView，顾名思义，当然是能够将不必要的View及时回收再利用，减少占用的内存。当我们处理完初始化流程后，自然需要支持RecyclerView的滚动逻辑以及子View的及时回收。如果要支持竖直方向上的滚动，那么我们需要覆盖这个方法：&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;@Override
 public boolean canScrollVertically(){
     return true;
 }
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　如果要支持水平方向上的滚动，则需要覆盖&lt;code&gt;canScrollHorizontally()&lt;/code&gt;方法。假设我们支持竖直方向上的滚动，那么当用户在RecycleView内滑动时，就会触发&lt;code&gt;scrollVerticallyBy()&lt;/code&gt;方法。因此我们需要覆盖这个方法，实现子View的滚动和回收。实现的方法因人而异，这里给出一种参考方法。该方法的大致流程如下。&lt;/p&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　如果要支持水平方向上的滚动，则需要覆盖&lt;code&gt;canScrollHorizontally()&lt;/code&gt;方法。假设我们支持竖直方向上的滚动，那么当用户在RecyclerView内滑动时，就会触发&lt;code&gt;scrollVerticallyBy()&lt;/code&gt;方法。因此我们需要覆盖这个方法，实现子View的滚动和回收。实现的方法因人而异，这里给出一种参考方法。该方法的大致流程如下。&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;@Override
 public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state){
 
@@ -147,20 +218,23 @@ public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerVi
 }
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;　　其中dy表示滑动的距离。先只考虑用户从下往上滑动的情形，此时整个列表往上滚动，dy&amp;gt;0。需要我们做的事情一共有这么几件。&lt;/p&gt;
 &lt;p&gt;　　第一步，计算出我们需要填充的空间，初始化相关的参数。第二步，调用相应的方法（在这里是&lt;code&gt;fillGrid()&lt;/code&gt;）将需要填充的部分填充完，具体的填充过程跟上面的&lt;code&gt;layoutChunk()&lt;/code&gt;过程类似。实际上可能由于没有item需要layout（即滑动到边界了）导致无法将相应的空间填满，因此需要根据实际layout的情况来确定真正填充了多少，并以此来确定子View能够滚动的距离。这就是第三步，确定实际滚动的距离delta。第四，调用&lt;code&gt;offsetChildrenVertical()&lt;/code&gt;将所有子View移动一段距离。最后，将完全移动到屏幕外的子View回收掉。对于dy&amp;gt;0的情况，我这里调用的是&lt;code&gt;recycleTopInvisibleViews(recycler)&lt;/code&gt;方法，即回收掉移动到上边界之外的子View，其内部调用&lt;code&gt;removeAndRecycleView()&lt;/code&gt;来进行子View的回收。当用户从上往下滑动时，对应的处理过程类似，这里就不再重复了。&lt;/p&gt;
-&lt;p&gt;　　以上就是自定义LayoutManager中，如何进行第一次layout，以及如何应对滚动逻辑的大致过程。如果你还想考虑子View发生增删改时，LayoutManager的处理，可以继续阅读RecycleView之自定义LayoutManager(下)。&lt;/p&gt;
+&lt;p&gt;　　以上就是自定义LayoutManager中，如何进行第一次layout，以及如何应对滚动逻辑的大致过程。如果你还想考虑子View发生增删改时，LayoutManager的处理，可以继续阅读&lt;a href=&quot;http://huskyyy.github.io/2016/05/02/RecyclerView-Post-2/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;RecyclerView之自定义LayoutManager(下)&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;　　&lt;/p&gt;
 </content>
     
     <summary type="html">
     
-      &lt;p&gt;　　很早的时候看到了这么一个&lt;a href=&quot;https://github.com/dodola/DynamicCardLayout&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;类似win8的瓷片式布局&lt;/a&gt;。而后又学习了RecycleView的使用。
+      &lt;p&gt;　　很早的时候看到了这么一个&lt;a href=&quot;https://github.com/dodola/DynamicCardLayout&quot;&gt;类似win8的瓷片式布局&lt;/a&gt;。而后又学习了RecyclerView的使用。心想就用RecyclerView实现这个布局吧。最后成品&lt;a href=&quot;https://github.com/Huskyyy/IrregularGridView&quot;&gt;在此&lt;/a&gt;。先贴上效果图。&lt;/p&gt;
+&lt;p&gt;&lt;img style=&quot;float:left;&quot; src=&quot;https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Base.gif&quot;&gt;  &lt;img style=&quot;float:center;&quot; src=&quot;https://raw.githubusercontent.com/Huskyyy/IrregularGridView/master/gif/Gallery.gif&quot;&gt; &lt;/p&gt;
+&lt;p&gt;　　和&lt;a href=&quot;https://github.com/dodola/DynamicCardLayout&quot;&gt;参考的那个布局&lt;/a&gt;相比，用RecyclerView实现的布局能够实现View的回收，同时还支持RecyclerView默认的移除动画效果。之后尝试写修改view的宽度的动画，未果。于是最终的移除动画变成了上面的缩放加移动，这一块留到之后再说。&lt;/p&gt;
+&lt;p&gt;　　如果你英语阅读能力良好，可以直接移步&lt;a href=&quot;http://wiresareobsolete.com/2014/09/building-a-recyclerview-layoutmanager-part-1/&quot;&gt;这里&lt;/a&gt;。接下来的内容基本上都包含在前面链接的博客里，加上了我个人的一些理解。&lt;/p&gt;
     
     </summary>
     
       <category term="自定义View" scheme="/categories/%E8%87%AA%E5%AE%9A%E4%B9%89View/"/>
     
     
-      <category term="RecycleView" scheme="/tags/RecycleView/"/>
+      <category term="RecyclerView" scheme="/tags/RecyclerView/"/>
     
       <category term="LayoutManager" scheme="/tags/LayoutManager/"/>
     
